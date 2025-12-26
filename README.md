@@ -23,13 +23,13 @@
 
 ```bash
 # 1. Build normalized data using cache only (no network access)
-nfrecap build NetflixViewingHistory.csv
+nfrecap build --in NetflixViewingHistory.csv --out NetflixViewingHistory.json
 
 # 2. Build while fetching metadata from external APIs
-nfrecap build NetflixViewingHistory.csv --fetch
+TMDB_BEARER_TOKEN=<your token> nfrecap build --in NetflixViewingHistory.csv --out NetflixViewingHistory.json --fetch
 
 # 3. Generate a recap from the built JSON
-nfrecap recap NetflixViewingHistory.json --year 2025 > Netflix-2025.md
+nfrecap recap --in NetflixViewingHistory.json --year 2025 --out Netflix-2025.md
 ```
 
 ---
