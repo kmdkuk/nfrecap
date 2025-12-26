@@ -8,7 +8,7 @@ import (
 
 	"github.com/kmdkuk/nfrecap/internal/build"
 	"github.com/kmdkuk/nfrecap/internal/csvio"
-	"github.com/kmdkuk/nfrecap/internal/provider"
+	tmdbprovider "github.com/kmdkuk/nfrecap/internal/provider/tmdb"
 	"github.com/kmdkuk/nfrecap/internal/store"
 )
 
@@ -34,8 +34,15 @@ Use --fetch to retrieve metadata from external APIs and update the cache.`,
 
 		cache := store.NewFileCache(buildCacheDir)
 
-		// Providerはスタブ（後でTMDb実装に置き換え）
-		p := provider.NewTMDbStub()
+		// Providerの初期化 (TMDB API)
+		p, err := tmdbprovider.NewFromEnv(tmdbprovider.Options{
+			UseV4Bearer: true,
+			AutoRetry:   true,
+			Language:    "ja-JP", // TODO: Configurable
+		})
+		if err != nil {
+			return fmt.Errorf("failed to init tmdb provider: %w", err)
+		}
 
 		opts := build.Options{
 			Fetch:   buildFetch,
