@@ -1,2 +1,4 @@
 *.json
 *.csv
+*.md
+!recap-sample.md
