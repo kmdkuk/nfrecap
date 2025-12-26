@@ -25,10 +25,10 @@
 # 1. Build normalized data using cache only (no network access)
 nfrecap build --in NetflixViewingHistory.csv --out NetflixViewingHistory.json
 
-# 2. Build while fetching metadata from external APIs
+# 1. Build while fetching metadata from external APIs
 TMDB_BEARER_TOKEN=<your token> nfrecap build --in NetflixViewingHistory.csv --out NetflixViewingHistory.json --fetch
 
-# 3. Generate a recap from the built JSON
+# 2. Generate a recap from the built JSON
 nfrecap recap --in NetflixViewingHistory.json --year 2025 --out Netflix-2025.md
 ```
 
@@ -143,38 +143,7 @@ nfrecap recap --in NetflixViewingHistory.json --year 2025 --out Netflix-2025.md
 
 ### Recap Output (Markdown)
 
-```md
-# Netflix Recap 2025
-
-## 視聴本数
-- 合計: 4
-
-## 月別視聴本数
-- 01月: 0
-- 02月: 0
-- 03月: 0
-- 04月: 0
-- 05月: 0
-- 06月: 0
-- 07月: 0
-- 08月: 0
-- 09月: 0
-- 10月: 0
-- 11月: 0
-- 12月: 4
-
-## 曜日別視聴本数
-- 日: 0
-- 月: 4
-- 火: 0
-- 水: 0
-- 木: 0
-- 金: 0
-- 土: 0
-
-## 最長連続視聴（streak）
-- 最長: 1日
-```
+See [testdata/recap-sample.md](testdata/recap-sample.md)
 
 ---
 
