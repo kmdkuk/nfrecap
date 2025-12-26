@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"text/template"
 	"time"
 )
@@ -30,10 +31,10 @@ func RenderMarkdown(s Stats) string {
 
 ### 月別 推定視聴時間・視聴回数
 
-| 月 | 視聴回数 | 推定視聴時間（時間） | 推定視聴時間（分） |
-|---:|---:|---:|---:|
+| 月 | 視聴回数 | 推定視聴時間（時間） |
+|---:|---:|---:|
 {{- range .MonthlyRows }}
-| {{.Month}} | {{.Views}} | {{.Hours}} | {{.Minutes}} |
+| {{.Month}} | {{.Views}} | {{.Hours}} |
 {{- end }}
 
 ---
@@ -101,6 +102,22 @@ func RenderMarkdown(s Stats) string {
 ---
 
 ## 4. 作品・シリーズ別
+
+
+---
+
+
+### ジャンル別視聴映画（サンプル）
+
+| ジャンル | 代表的な視聴作品（3選） |
+|---|---|
+{{- range .GenreRows }}
+{{- if .SampleMovies }}
+| {{.Name}} | {{.SampleMovies}} |
+{{- end }}
+{{- end }}
+
+---
 
 ### 推定視聴時間が多い作品（Top）
 
@@ -205,10 +222,11 @@ type streakRow struct {
 	End   string
 }
 type genreRow struct {
-	Name  string
-	Hours string
-	Share string
-	Views int
+	Name         string
+	Hours        string
+	Share        string
+	Views        int
+	SampleMovies string // comma separated or pre-formatted? Or separate section.
 }
 type spikeRow struct {
 	Name  string
@@ -312,13 +330,44 @@ func prepareViewData(s Stats) viewData {
 	otherGenreViews := 0
 
 	limit := 10
+	usedMovies := make(map[string]bool) // Track movies already used in samples
+
 	for i, g := range s.GenreStats {
+		// Prepare samples string with deduplication
+		samples := ""
+		if movies, ok := s.GenreSampleMovies[g.Name]; ok && len(movies) > 0 {
+			// Filter out already used movies
+			var availableMovies []string
+			for _, movie := range movies {
+				if !usedMovies[movie] {
+					availableMovies = append(availableMovies, movie)
+				}
+			}
+
+			// Take up to 3 unique movies
+			sampleLimit := 3
+			if len(availableMovies) < sampleLimit {
+				sampleLimit = len(availableMovies)
+			}
+
+			if sampleLimit > 0 {
+				selectedMovies := availableMovies[:sampleLimit]
+				samples = strings.Join(selectedMovies, ", ")
+
+				// Mark these movies as used
+				for _, movie := range selectedMovies {
+					usedMovies[movie] = true
+				}
+			}
+		}
+
 		if i < limit {
 			vd.GenreRows = append(vd.GenreRows, genreRow{
-				Name:  g.Name,
-				Hours: fmt.Sprintf("%.1f", float64(g.DurationMin)/60.0),
-				Share: fmt.Sprintf("%.1f", g.Share),
-				Views: g.Views,
+				Name:         g.Name,
+				Hours:        fmt.Sprintf("%.1f", float64(g.DurationMin)/60.0),
+				Share:        fmt.Sprintf("%.1f", g.Share),
+				Views:        g.Views,
+				SampleMovies: samples,
 			})
 		} else {
 			otherGenreDur += g.DurationMin

@@ -31,8 +31,9 @@ type Stats struct {
 	WeekdayStats map[time.Weekday]Metric
 
 	// Genres
-	GenreStats      []GenreStat
-	GenreMonthSpike map[string]Spike // Genre -> Spike Info
+	GenreStats        []GenreStat
+	GenreMonthSpike   map[string]Spike    // Genre -> Spike Info
+	GenreSampleMovies map[string][]string // Genre -> List of movie titles
 
 	// Titles
 	TopTitlesByDuration []TitleStat
@@ -111,11 +112,12 @@ func ReadBuiltJSON(path string) (build.Built, error) {
 
 func ComputeStats(built build.Built, year int) Stats {
 	s := Stats{
-		Year:         year,
-		GeneratedAt:  built.GeneratedAt,
-		SourceFile:   built.Source,
-		MonthlyStats: make(map[time.Month]Metric),
-		WeekdayStats: make(map[time.Weekday]Metric),
+		Year:              year,
+		GeneratedAt:       built.GeneratedAt,
+		SourceFile:        built.Source,
+		MonthlyStats:      make(map[time.Month]Metric),
+		WeekdayStats:      make(map[time.Weekday]Metric),
+		GenreSampleMovies: make(map[string][]string),
 	}
 
 	// Internal aggregation maps
@@ -179,6 +181,22 @@ func ComputeStats(built build.Built, year int) Stats {
 			genreMap[g].Views++
 			genreMap[g].DurationMin += dur
 			genreMonthMap[g][m] += dur
+
+			// Collect Movie Samples
+			if it.Normalized.Type == "movie" {
+				exists := false
+				for _, existTitle := range s.GenreSampleMovies[g] {
+					if existTitle == it.Normalized.WorkTitle {
+						exists = true
+						break
+					}
+				}
+				if !exists {
+					if len(s.GenreSampleMovies[g]) < 5 {
+						s.GenreSampleMovies[g] = append(s.GenreSampleMovies[g], it.Normalized.WorkTitle)
+					}
+				}
+			}
 		}
 
 		// Title
