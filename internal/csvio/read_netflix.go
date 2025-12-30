@@ -3,6 +3,7 @@ package csvio
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -17,10 +18,14 @@ func ReadNetflixCSV(path string) ([]model.ViewingRecord, error) {
 	}
 	defer f.Close()
 
-	r := csv.NewReader(f)
-	r.FieldsPerRecord = -1
+	return ParseNetflixCSV(f)
+}
 
-	rows, err := r.ReadAll()
+func ParseNetflixCSV(r io.Reader) ([]model.ViewingRecord, error) {
+	cr := csv.NewReader(r)
+	cr.FieldsPerRecord = -1
+
+	rows, err := cr.ReadAll()
 	if err != nil {
 		return nil, err
 	}
