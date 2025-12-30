@@ -445,7 +445,6 @@ func (s *Stats) computeUnresolved(m map[string]int) {
 	for k, count := range m {
 		// k is "Title|Type"
 		var title, typ string
-		fmt.Sscanf(k, "%s|%s", &title, &typ)
 		// simple split might fail if title contains |, but we used fmt.Sprintf earlier.
 		// Actually let's just do manual split or parsing.
 		// Since we control key gen, let's just parsing.
