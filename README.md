@@ -13,7 +13,7 @@
 
 1. Reads Netflix viewing history CSV (`Title`, `Date`)
 2. Normalizes titles (movie / TV, work title, season, episode)
-3. (WIP) Optionally fetches external metadata and caches it locally
+3. Optionally fetches external metadata and caches it locally
 4. Builds a normalized intermediate JSON artifact
 5. Generates a Markdown recap with viewing statistics
 
@@ -44,10 +44,7 @@ Example:
 
 ```csv
 Title,Date
-"ジョン・ウィック: コンセクエンス","12/1/25"
-"ジョン・ウィック: パラベラム","12/1/25"
-"ジョン・ウィック：チャプター2","12/1/25"
-"ジョン・ウィック","12/1/25"
+"駒田蒸留所へようこそ","6/7/25"
 ```
 
 - Required columns: `Title`, `Date`
@@ -116,20 +113,22 @@ nfrecap recap --in NetflixViewingHistory.json --year 2025 --out Netflix-2025.md
   "generated_at": "2025-12-22T14:39:53+09:00",
   "items": [
     {
-      "date": "2025-12-01",
+      "date": "2025-06-07",
       "normalized": {
-        "raw_title": "ジョン・ウィック: コンセクエンス",
-        "work_title": "ジョン・ウィック: コンセクエンス",
+        "raw_title": "駒田蒸留所へようこそ",
+        "work_title": "駒田蒸留所へようこそ",
         "type": "movie"
       },
       "metadata": {
-        "provider": "tmdb-stub",
-        "id": "stub:ジョン・ウィック: コンセクエンス",
-        "title": "ジョン・ウィック: コンセクエンス",
+        "provider": "tmdb",
+        "id": "movie:1119211",
+        "title": "Komada – A Whisky Family",
         "genres": [
-          "Unknown"
+          "Animation",
+          "Drama",
+          "Family"
         ],
-        "runtime_min": 120
+        "runtime_min": 91
       }
     },
   ]
@@ -149,13 +148,16 @@ See [testdata/recap-sample.md](testdata/recap-sample.md)
 
 ## Planned / Not Yet Implemented
 
-- Real external metadata provider implementation (e.g. TMDb)
-- Genre-based estimated viewing time
-- Series-level rankings
 - Multi-year recaps
 - Support for multiple languages (Currently supports only Japanese)
 
 > These features are not part of the current specification and may change.
+
+---
+
+## Disclaimer
+
+This nfrecap uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.
 
 ---
 
