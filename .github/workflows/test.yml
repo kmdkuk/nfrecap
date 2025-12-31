@@ -4,15 +4,18 @@ on:
   push:
 
 jobs:
-  test:
+  backend-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'backend/go.mod'
 
       - name: Install and Run golangci-lint
         run: |
@@ -27,4 +30,29 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
+          workdir: backend
           args: release --snapshot --clean --skip=publish
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Using Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

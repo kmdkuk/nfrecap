@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - ./backend/.cache/nfrecap:/app/cache
+    env_file:
+      - ./backend/.env
+    environment:
+      - TZ=Asia/Tokyo
+    command: ["nfrecap", "serve", "--cache-dir", "/app/cache"]
+  
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
