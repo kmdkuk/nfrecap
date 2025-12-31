@@ -2,7 +2,6 @@ package build
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 	"time"
 
@@ -39,7 +38,7 @@ type BuiltItem struct {
 	Metadata   *model.Metadata       `json:"metadata,omitempty"`
 }
 
-func Run(records []model.ViewingRecord, cache store.Cache, p provider.Provider, opts Options) ([]byte, Summary, error) {
+func Run(records []model.ViewingRecord, cache store.Cache, p provider.Provider, opts Options) (Built, Summary, error) {
 	sum := Summary{}
 	out := Built{
 		GeneratedAt: time.Now().Format(time.RFC3339),
@@ -100,7 +99,7 @@ func Run(records []model.ViewingRecord, cache store.Cache, p provider.Provider, 
 					mu.Unlock()
 
 					if putErr != nil {
-						// caching error shouldn't stop the build? 
+						// caching error shouldn't stop the build?
 						// but current logic returns error. keeping consistent.
 						return putErr
 					}
@@ -128,12 +127,8 @@ func Run(records []model.ViewingRecord, cache store.Cache, p provider.Provider, 
 	}
 
 	if err := eg.Wait(); err != nil {
-		return nil, sum, err
+		return Built{}, sum, err
 	}
 
-	b, err := json.MarshalIndent(out, "", "  ")
-	if err != nil {
-		return nil, sum, err
-	}
-	return b, sum, nil
+	return out, sum, nil
 }

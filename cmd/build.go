@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -49,7 +50,12 @@ Use --fetch to retrieve metadata from external APIs and update the cache.`,
 			Verbose: flagVerbose,
 		}
 
-		out, summary, err := build.Run(recs, cache, p, opts)
+		outStruct, summary, err := build.Run(recs, cache, p, opts)
+		if err != nil {
+			return err
+		}
+
+		out, err := json.MarshalIndent(outStruct, "", "  ")
 		if err != nil {
 			return err
 		}

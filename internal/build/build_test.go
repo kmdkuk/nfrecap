@@ -1,7 +1,6 @@
 package build
 
 import (
-	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -143,19 +142,16 @@ func TestRun(t *testing.T) {
 				tt.setupMocks(mockCache, mockProvider)
 			}
 
-			output, sum, err := Run(tt.records, mockCache, mockProvider, tt.opts)
+			built, sum, err := Run(tt.records, mockCache, mockProvider, tt.opts)
 
 			if tt.expectedError != "" {
 				assert.ErrorContains(t, err, tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedSum, sum)
-				assert.NotNil(t, output)
+				assert.NotNil(t, built)
 
 				// Basic check on output JSON structure
-				var built Built
-				err := json.Unmarshal(output, &built)
-				assert.NoError(t, err)
 				assert.Len(t, built.Items, len(tt.records))
 				assert.Equal(t, recordStr, built.Items[0].Date)
 			}

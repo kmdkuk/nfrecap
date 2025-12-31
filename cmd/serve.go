@@ -82,33 +82,10 @@ var serveCmd = &cobra.Command{
 				}
 			}
 
-			// We need the "Built" struct to ComputeStats.
-			// Wait, build.Run returns []byte (JSON) and Summary.
-			// recap.ComputeStats needs build.Built struct.
-			// I should probably refactor build.Run to return struct, OR unmarshal the bytes.
-			// Unmarshalling bytes is inefficient but easiest given current API.
-			// NOTE: build.Run returns []byte, summary, error.
-
-			// Re-construct Built struct from records and cache results...
-			// Actually build.Run already constructs it internally.
-			// If I modify build.Run to return Built struct, that would be better.
-			// But for now, I will unmarshal the returned JSON bytes to reuse existing `recap.ReadBuiltJSON` logic equivalent.
-
-			// Actually build.Run returns the JSON bytes. I can just Unmarshal it back.
-			// Let's call build.Run, get bytes, unmarshal to build.Built.
-
-			// But wait, I can just copy the logic from build.Run if I want to avoid marshalling/unmarshalling overhead.
-			// However, given this is an MVP "subcommand", reusing build.Run is cleaner code-wise.
-
-			builtJSONBytes, _, err := build.Run(records, cache, p, opts)
+			// Execute build process
+			builtData, _, err := build.Run(records, cache, p, opts)
 			if err != nil {
 				http.Error(w, fmt.Sprintf("Build run failed: %v", err), http.StatusInternalServerError)
-				return
-			}
-
-			var builtData build.Built
-			if err := json.Unmarshal(builtJSONBytes, &builtData); err != nil {
-				http.Error(w, fmt.Sprintf("Internal error (unmarshal built): %v", err), http.StatusInternalServerError)
 				return
 			}
 
