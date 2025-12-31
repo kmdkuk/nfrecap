@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -18,6 +19,7 @@ var (
 	buildOut      string
 	buildFetch    bool
 	buildCacheDir string
+	buildCacheTTL time.Duration
 )
 
 var buildCmd = &cobra.Command{
@@ -33,7 +35,7 @@ Use --fetch to retrieve metadata from external APIs and update the cache.`,
 			return err
 		}
 
-		cache := store.NewFileCache(buildCacheDir)
+		cache := store.NewFileCache(buildCacheDir, buildCacheTTL)
 
 		// Providerの初期化 (TMDB API)
 		p, err := tmdbprovider.NewFromEnv(tmdbprovider.Options{
@@ -81,6 +83,7 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildOut, "out", "o", "build.json", "output built JSON file")
 	buildCmd.Flags().BoolVar(&buildFetch, "fetch", false, "fetch metadata from external APIs before building")
 	buildCmd.Flags().StringVar(&buildCacheDir, "cache-dir", store.DefaultCacheDir(), "metadata cache directory")
+	buildCmd.Flags().DurationVar(&buildCacheTTL, "cache-ttl", 72*time.Hour, "cache expiration duration")
 
 	_ = buildCmd.MarkFlagRequired("in")
 }

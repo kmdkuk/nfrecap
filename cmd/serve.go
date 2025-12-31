@@ -19,6 +19,7 @@ import (
 var (
 	servePort     int
 	serveCacheDir string
+	serveCacheTTL time.Duration
 )
 
 var serveCmd = &cobra.Command{
@@ -26,7 +27,7 @@ var serveCmd = &cobra.Command{
 	Short: "Start API server to process Netflix CSV and return recap JSON",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Init dependencies
-		cache := store.NewFileCache(serveCacheDir)
+		cache := store.NewFileCache(serveCacheDir, serveCacheTTL)
 
 		p, err := tmdbprovider.NewFromEnv(tmdbprovider.Options{
 			UseV4Bearer: true,
@@ -113,4 +114,5 @@ func init() {
 
 	serveCmd.Flags().IntVarP(&servePort, "port", "p", 8080, "server port")
 	serveCmd.Flags().StringVar(&serveCacheDir, "cache-dir", store.DefaultCacheDir(), "metadata cache directory")
+	serveCmd.Flags().DurationVar(&serveCacheTTL, "cache-ttl", 72*time.Hour, "cache expiration duration")
 }
