@@ -1,81 +1,10 @@
 import React, { useState } from 'react';
 import './App.css';
-
-interface UseMetric {
-  Views: number;
-  DurationMin: number;
-}
-
-interface Streak {
-  Days: number;
-  Start: string;
-  End: string;
-}
-
-interface Gap {
-  Days: number;
-  Start: string;
-  End: string;
-}
-
-interface GenreStat {
-  Name: string;
-  DurationMin: number;
-  Views: number;
-  Share: number;
-}
-
-interface Spike {
-  Month: number;
-  DurationMin: number;
-}
-
-interface TitleStat {
-  Title: string;
-  Type: string;
-  DurationMin: number;
-  Views: number;
-}
-
-interface SeriesStat {
-  SeriesName: string;
-  DurationMin: number;
-  Views: number;
-  SpanStart: string;
-  SpanEnd: string;
-}
-
-interface UnresolvedItem {
-  Title: string;
-  Type: string;
-  Views: number;
-}
-
-interface Stats {
-  Year: number;
-  GeneratedAt: string;
-  SourceFile: string;
-  TotalViews: number;
-  TotalDurationMin: number;
-  ActiveDays: number;
-  TopStreaks: Streak[];
-  MaxGap: Gap;
-  MonthlyStats: Record<string, UseMetric>;
-  WeekdayStats: Record<string, UseMetric>;
-  GenreStats: GenreStat[];
-  GenreMonthSpike: Record<string, Spike>;
-  GenreSampleMovies: Record<string, string[]>;
-  TopTitlesByDuration: TitleStat[];
-  TopTitlesByViews: TitleStat[];
-  TopSeriesByDuration: SeriesStat[];
-  TopSeriesByViews: SeriesStat[];
-  UnresolvedCount: number;
-  UnresolvedList: UnresolvedItem[];
-}
-
-interface ApiResponse {
-  recap: Stats;
-}
+import type { ApiResponse, Stats } from './types';
+import { UploadSection } from './components/UploadSection';
+import { StatsSummary } from './components/StatsSummary';
+import { GenreTable } from './components/GenreTable';
+import { TitleTable } from './components/TitleTable';
 
 function App() {
   const [file, setFile] = useState<File | null>(null);
@@ -122,12 +51,6 @@ function App() {
     }
   };
 
-  const formatMin = (min: number) => {
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    return `${h}h ${m}m`;
-  };
-
   return (
     <div className="container">
       <header>
@@ -135,83 +58,26 @@ function App() {
         <p>Upload your NetflixViewingHistory.csv to see your stats.</p>
       </header>
 
-      <div className="upload-section">
-        <form onSubmit={handleSubmit}>
-          <input type="file" accept=".csv" onChange={handleFileChange} />
-          <button type="submit" disabled={!file || loading}>
-            {loading ? 'Analyzing...' : 'Analyze'}
-          </button>
-        </form>
-        {error && <div className="error">{error}</div>}
-      </div>
+      <UploadSection
+        file={file}
+        loading={loading}
+        error={error}
+        onFileChange={handleFileChange}
+        onSubmit={handleSubmit}
+      />
 
       {data && (
         <div className="results fade-in">
           <h2>Stats for {data.Year}</h2>
 
-          <div className="stats-grid">
-            <div className="card">
-              <h3>Total Time</h3>
-              <p className="big-stat">{formatMin(data.TotalDurationMin)}</p>
-              <p>{data.TotalViews} views</p>
-            </div>
-            <div className="card">
-              <h3>Active Days</h3>
-              <p className="big-stat">{data.ActiveDays}</p>
-              <p>days watched</p>
-            </div>
-            <div className="card">
-              <h3>Top Genre</h3>
-              <p className="big-stat">{data.GenreStats[0]?.Name || '-'}</p>
-              <p>{data.GenreStats[0] ? formatMin(data.GenreStats[0].DurationMin) : ''}</p>
-            </div>
-          </div>
+          <StatsSummary data={data} />
 
-          <div className="section">
-            <h3>Top Genres</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Genre</th>
-                  <th>Duration</th>
-                  <th>Share</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.GenreStats.slice(0, 10).map((g) => (
-                  <tr key={g.Name}>
-                    <td>{g.Name}</td>
-                    <td>{formatMin(g.DurationMin)}</td>
-                    <td>{g.Share.toFixed(1)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <GenreTable stats={data.GenreStats} />
 
-          <div className="section">
-            <h3>Top Movies & TV (by Duration)</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Type</th>
-                  <th>Duration</th>
-                  <th>Views</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.TopTitlesByDuration.slice(0, 10).map((t, i) => (
-                  <tr key={i}>
-                    <td>{t.Title}</td>
-                    <td>{t.Type}</td>
-                    <td>{formatMin(t.DurationMin)}</td>
-                    <td>{t.Views}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TitleTable
+            title="Top Movies & TV (by Duration)"
+            data={data.TopTitlesByDuration}
+          />
         </div>
       )}
     </div>
