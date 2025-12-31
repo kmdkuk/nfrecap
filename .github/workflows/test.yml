@@ -21,3 +21,10 @@ jobs:
 
       - name: Test
         run: go test -v ./...
+
+      - name: Run GoReleaser (Dry Run)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --snapshot --clean --skip=publish
