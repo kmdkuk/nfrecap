@@ -7,17 +7,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kmdkuk/nfrecap/internal/model"
 )
 
 type FileCache struct {
 	dir string
+	ttl time.Duration
 }
 
-func NewFileCache(dir string) *FileCache {
+func NewFileCache(dir string, ttl time.Duration) *FileCache {
 	_ = os.MkdirAll(dir, 0o755)
-	return &FileCache{dir: dir}
+	return &FileCache{dir: dir, ttl: ttl}
 }
 
 func DefaultCacheDir() string {
@@ -31,8 +33,24 @@ func DefaultCacheDir() string {
 
 func (c *FileCache) Get(workTitle string, typ string) (model.Metadata, bool, error) {
 	p := c.path(workTitle, typ)
+
+	// Check stat first for expiry
+	st, err := os.Stat(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return model.Metadata{}, false, nil
+		}
+		return model.Metadata{}, false, err
+	}
+
+	if c.ttl > 0 && time.Since(st.ModTime()) > c.ttl {
+		// Expired
+		return model.Metadata{}, false, nil
+	}
+
 	b, err := os.ReadFile(p)
 	if err != nil {
+		// Should not happen if stat succeeded, but race condition possible
 		if os.IsNotExist(err) {
 			return model.Metadata{}, false, nil
 		}
