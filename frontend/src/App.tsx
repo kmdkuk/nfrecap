@@ -5,6 +5,9 @@ import { UploadSection } from './components/UploadSection';
 import { StatsSummary } from './components/StatsSummary';
 import { GenreTable } from './components/GenreTable';
 import { TitleTable } from './components/TitleTable';
+import { RecapCard } from './components/features/recap/RecapCard';
+import { RecapStory } from './components/features/recap/RecapStory';
+import { Clock, Eye, Calendar, Film } from 'lucide-react';
 
 function App() {
   const [file, setFile] = useState<File | null>(null);
@@ -69,6 +72,39 @@ function App() {
       {data && (
         <div className="results fade-in">
           <h2>Stats for {data.Year}</h2>
+
+          <RecapStory>
+            <RecapCard
+              title="Total Views"
+              value={data.TotalViews}
+              category="Engagement"
+              icon={Eye}
+              variant="highlight"
+              backgroundColor="#E50914"
+            />
+            <RecapCard
+              title="Total Time"
+              value={`${Math.round(data.TotalDurationMin / 60)}h`}
+              category="Time Spent"
+              icon={Clock}
+            />
+            <RecapCard
+              title="Active Days"
+              value={data.ActiveDays}
+              category="Consistency"
+              icon={Calendar}
+            />
+            {data.GenreStats.length > 0 && (
+              <RecapCard
+                title="Top Genre"
+                value={data.GenreStats[0].Name}
+                category="Favorite"
+                icon={Film}
+                variant="highlight"
+                backgroundColor="#221f1f"
+              />
+            )}
+          </RecapStory>
 
           <StatsSummary data={data} />
 
