@@ -337,26 +337,26 @@ func prepareViewData(s Stats) viewData {
 		samples := ""
 		if movies, ok := s.GenreSampleMovies[g.Name]; ok && len(movies) > 0 {
 			// Filter out already used movies
-			var availableMovies []string
+			var availableTitles []string
 			for _, movie := range movies {
-				if !usedMovies[movie] {
-					availableMovies = append(availableMovies, movie)
+				if !usedMovies[movie.Title] {
+					availableTitles = append(availableTitles, movie.Title)
 				}
 			}
 
 			// Take up to 3 unique movies
 			sampleLimit := 3
-			if len(availableMovies) < sampleLimit {
-				sampleLimit = len(availableMovies)
+			if len(availableTitles) < sampleLimit {
+				sampleLimit = len(availableTitles)
 			}
 
 			if sampleLimit > 0 {
-				selectedMovies := availableMovies[:sampleLimit]
-				samples = strings.Join(selectedMovies, ", ")
+				selectedTitles := availableTitles[:sampleLimit]
+				samples = strings.Join(selectedTitles, ", ")
 
 				// Mark these movies as used
-				for _, movie := range selectedMovies {
-					usedMovies[movie] = true
+				for _, title := range selectedTitles {
+					usedMovies[title] = true
 				}
 			}
 		}

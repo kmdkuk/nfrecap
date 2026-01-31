@@ -133,6 +133,68 @@ func TestComputeStats(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "Genre Ranking Top/Worst",
+			year: 2023,
+			items: []build.BuiltItem{
+				{Date: "2023-01-01", Normalized: model.NormalizedTitle{WorkTitle: "A", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Action"}, VoteAverage: 8.0}},
+				{Date: "2023-01-02", Normalized: model.NormalizedTitle{WorkTitle: "B", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Action"}, VoteAverage: 2.0}},
+				{Date: "2023-01-03", Normalized: model.NormalizedTitle{WorkTitle: "C", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Action"}, VoteAverage: 9.0}},
+				{Date: "2023-01-04", Normalized: model.NormalizedTitle{WorkTitle: "D", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Action"}, VoteAverage: 3.0}},
+				{Date: "2023-01-05", Normalized: model.NormalizedTitle{WorkTitle: "E", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Action"}, VoteAverage: 5.0}},
+				// Unrated one, should be ignored
+				{Date: "2023-01-06", Normalized: model.NormalizedTitle{WorkTitle: "X", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Action"}, VoteAverage: 0.0}},
+			},
+			expected: func(t *testing.T, s Stats) {
+				// Sorted by Desc: C(9), A(8), E(5), D(3), B(2)
+				// Top 3: C, A, E
+				if assert.Contains(t, s.GenreTopWorks, "Action") {
+					top := s.GenreTopWorks["Action"]
+					if assert.Len(t, top, 3) {
+						assert.Equal(t, "C", top[0].Title)
+						assert.Equal(t, "A", top[1].Title)
+						assert.Equal(t, "E", top[2].Title)
+					}
+				}
+
+				// Worst 3: B(2), D(3), E(5) (Lowest first)
+				if assert.Contains(t, s.GenreWorstWorks, "Action") {
+					worst := s.GenreWorstWorks["Action"]
+					if assert.Len(t, worst, 3) {
+						assert.Equal(t, "B", worst[0].Title)
+						assert.Equal(t, "D", worst[1].Title)
+						assert.Equal(t, "E", worst[2].Title)
+					}
+				}
+			},
+		},
+		{
+			name: "Genre Sample Movies Sorted by Popularity",
+			year: 2023,
+			items: []build.BuiltItem{
+				{Date: "2023-01-01", Normalized: model.NormalizedTitle{WorkTitle: "Low Pop", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Drama"}, Popularity: 10.0}},
+				{Date: "2023-01-02", Normalized: model.NormalizedTitle{WorkTitle: "High Pop", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Drama"}, Popularity: 100.0}},
+				{Date: "2023-01-03", Normalized: model.NormalizedTitle{WorkTitle: "Mid Pop", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Drama"}, Popularity: 50.0}},
+				{Date: "2023-01-04", Normalized: model.NormalizedTitle{WorkTitle: "Super Pop", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Drama"}, Popularity: 200.0}},
+				{Date: "2023-01-05", Normalized: model.NormalizedTitle{WorkTitle: "Tiny Pop", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Drama"}, Popularity: 1.0}},
+				{Date: "2023-01-06", Normalized: model.NormalizedTitle{WorkTitle: "Extra", Type: "movie"}, Metadata: &model.Metadata{Genres: []string{"Drama"}, Popularity: 5.0}},
+			},
+			expected: func(t *testing.T, s Stats) {
+				if assert.Contains(t, s.GenreSampleMovies, "Drama") {
+					samples := s.GenreSampleMovies["Drama"]
+					// Should be top 5 by popularity desc
+					// Items: Super(200), High(100), Mid(50), Low(10), Extra(5)|Tiny(1)
+					// Expected Top 5: Super, High, Mid, Low, Extra (Tiny is 6th, dropped)
+					if assert.Len(t, samples, 5) {
+						assert.Equal(t, "Super Pop", samples[0].Title)
+						assert.Equal(t, "High Pop", samples[1].Title)
+						assert.Equal(t, "Mid Pop", samples[2].Title)
+						assert.Equal(t, "Low Pop", samples[3].Title)
+						assert.Equal(t, "Extra", samples[4].Title)
+					}
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
