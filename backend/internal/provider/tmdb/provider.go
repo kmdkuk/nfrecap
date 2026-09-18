@@ -20,8 +20,8 @@ type Provider struct {
 }
 
 type Options struct {
-	UseV4Bearer bool // true: InitV4, false: Init (api key)
-	AutoRetry   bool // retry on 429
+	UseV4Bearer bool   // true: InitV4, false: Init (api key)
+	AutoRetry   bool   // retry on 429
 	Language    string // e.g. "ja-JP"
 }
 
@@ -118,11 +118,14 @@ func (p *Provider) Lookup(workTitle string, typ string) (model.Metadata, bool, e
 		}
 
 		return model.Metadata{
-			Provider: "tmdb",
-			ID:       fmt.Sprintf("movie:%d", id),
-			Title:    details.Title,
-			Genres:   genres,
-			Runtime:  int(details.Runtime),
+			Provider:    "tmdb",
+			ID:          fmt.Sprintf("movie:%d", id),
+			Title:       details.Title,
+			Genres:      genres,
+			Runtime:     int(details.Runtime),
+			VoteAverage: float64(details.VoteAverage),
+			Popularity:  float64(details.Popularity),
+			PosterPath:  details.PosterPath,
 		}, true, nil
 
 	} else { // tv
@@ -144,11 +147,14 @@ func (p *Provider) Lookup(workTitle string, typ string) (model.Metadata, bool, e
 		}
 
 		return model.Metadata{
-			Provider: "tmdb",
-			ID:       fmt.Sprintf("tv:%d", id),
-			Title:    details.Name,
-			Genres:   genres,
-			Runtime:  runtime,
+			Provider:    "tmdb",
+			ID:          fmt.Sprintf("tv:%d", id),
+			Title:       details.Name,
+			Genres:      genres,
+			Runtime:     runtime,
+			VoteAverage: float64(details.VoteAverage),
+			Popularity:  float64(details.Popularity),
+			PosterPath:  details.PosterPath,
 		}, true, nil
 	}
 }

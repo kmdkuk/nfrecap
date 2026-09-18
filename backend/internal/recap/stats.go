@@ -32,8 +32,10 @@ type Stats struct {
 
 	// Genres
 	GenreStats        []GenreStat
-	GenreMonthSpike   map[string]Spike    // Genre -> Spike Info
-	GenreSampleMovies map[string][]string // Genre -> List of movie titles
+	GenreMonthSpike   map[string]Spike       // Genre -> Spike Info
+	GenreSampleMovies map[string][]TitleStat // Genre -> List of movie sample TitleStats
+	GenreTopWorks     map[string][]TitleStat // Genre -> Top 3 Works (by vote average)
+	GenreWorstWorks   map[string][]TitleStat // Genre -> Worst 3 Works (by vote average)
 
 	// Titles
 	TopTitlesByDuration []TitleStat
@@ -82,6 +84,9 @@ type TitleStat struct {
 	Type        string // movie or tv
 	DurationMin int
 	Views       int
+	VoteAverage float64
+	PosterPath  string
+	Popularity  float64
 }
 
 type SeriesStat struct {
@@ -112,20 +117,25 @@ func ReadBuiltJSON(path string) (build.Built, error) {
 
 func ComputeStats(built build.Built, year int) Stats {
 	s := Stats{
-		Year:              year,
-		GeneratedAt:       built.GeneratedAt,
-		SourceFile:        built.Source,
-		MonthlyStats:      make(map[time.Month]Metric),
-		WeekdayStats:      make(map[time.Weekday]Metric),
-		GenreSampleMovies: make(map[string][]string),
+		Year:         year,
+		GeneratedAt:  built.GeneratedAt,
+		SourceFile:   built.Source,
+		MonthlyStats: make(map[time.Month]Metric),
+		WeekdayStats: make(map[time.Weekday]Metric),
+
+		GenreSampleMovies: make(map[string][]TitleStat),
+		GenreTopWorks:     make(map[string][]TitleStat),
+		GenreWorstWorks:   make(map[string][]TitleStat),
 	}
 
 	// Internal aggregation maps
 	genreMap := make(map[string]*Metric)                 // Genre -> Metric
 	genreMonthMap := make(map[string]map[time.Month]int) // Genre -> Month -> Duration
 	titleMap := make(map[string]*TitleStat)              // "Title|Type" -> TitleStat
+	titleGenres := make(map[string][]string)             // "Title|Type" -> Genres
 	seriesMap := make(map[string]*SeriesStat)            // SeriesName -> SeriesStat
 	unresolvedMap := make(map[string]int)                // Title|Type -> count
+	genreSeen := make(map[string]map[string]bool)        // Genre -> Title -> bool (for dedupe)
 
 	var dates []time.Time
 
@@ -184,17 +194,23 @@ func ComputeStats(built build.Built, year int) Stats {
 
 			// Collect Movie Samples
 			if it.Normalized.Type == "movie" {
-				exists := false
-				for _, existTitle := range s.GenreSampleMovies[g] {
-					if existTitle == it.Normalized.WorkTitle {
-						exists = true
-						break
-					}
+				if genreSeen[g] == nil {
+					genreSeen[g] = make(map[string]bool)
 				}
-				if !exists {
-					if len(s.GenreSampleMovies[g]) < 5 {
-						s.GenreSampleMovies[g] = append(s.GenreSampleMovies[g], it.Normalized.WorkTitle)
+				if !genreSeen[g][it.Normalized.WorkTitle] {
+					genreSeen[g][it.Normalized.WorkTitle] = true
+
+					ts := TitleStat{
+						Title:       it.Normalized.WorkTitle,
+						Type:        it.Normalized.Type,
+						DurationMin: dur,
 					}
+					if it.Metadata != nil {
+						ts.VoteAverage = it.Metadata.VoteAverage
+						ts.Popularity = it.Metadata.Popularity
+						ts.PosterPath = it.Metadata.PosterPath
+					}
+					s.GenreSampleMovies[g] = append(s.GenreSampleMovies[g], ts)
 				}
 			}
 		}
@@ -209,6 +225,12 @@ func ComputeStats(built build.Built, year int) Stats {
 		}
 		titleMap[tKey].Views++
 		titleMap[tKey].DurationMin += dur
+		if it.Metadata != nil {
+			titleMap[tKey].VoteAverage = it.Metadata.VoteAverage
+			titleMap[tKey].Popularity = it.Metadata.Popularity
+			titleMap[tKey].PosterPath = it.Metadata.PosterPath
+			titleGenres[tKey] = it.Metadata.Genres
+		}
 
 		// Series
 		if it.Normalized.Type == "tv" {
@@ -242,6 +264,8 @@ func ComputeStats(built build.Built, year int) Stats {
 
 	// Genres
 	s.computeGenres(genreMap, genreMonthMap)
+	s.computeGenreRankings(titleMap, titleGenres)
+	s.computeSampleMovies()
 
 	// Titles
 	s.computeTitles(titleMap)
@@ -489,5 +513,77 @@ func (s *Stats) computeUnresolved(m map[string]int) {
 		s.UnresolvedList = us[:30]
 	} else {
 		s.UnresolvedList = us
+	}
+}
+
+func (s *Stats) computeGenreRankings(titleMap map[string]*TitleStat, titleGenres map[string][]string) {
+	// 1. Group titles by genre
+	genreWorks := make(map[string][]TitleStat)
+	for tKey, genres := range titleGenres {
+		stat, ok := titleMap[tKey]
+		if !ok {
+			continue
+		}
+		// Only consider movies/tv that have a vote average > 0 to avoid "unrated" being worst
+		// And maybe only "movie"? Request said "movies" (Top 3 Works).
+		// "Top 3 Works" (Sakuhin) implies both.
+		// If 0 vote average, usually means unrated. Let's keep them out of ranking.
+		if stat.VoteAverage <= 0 {
+			continue
+		}
+
+		for _, g := range genres {
+			genreWorks[g] = append(genreWorks[g], *stat)
+		}
+	}
+
+	for g, works := range genreWorks {
+		// Sort for Top (Desc)
+		sort.Slice(works, func(i, j int) bool {
+			return works[i].VoteAverage > works[j].VoteAverage
+		})
+
+		// Top 3
+		topLimit := 3
+		if len(works) > topLimit {
+			s.GenreTopWorks[g] = works[:topLimit]
+		} else {
+			s.GenreTopWorks[g] = works
+		}
+
+		// Sort for Worst (Asc) -> Filtered > 0 already
+		// Need to copy relevant slice first?
+		// works is already sorted desc.
+		// Last elements are the worst.
+		// But slice might be large.
+		// Let's just create a new slice for worst or just pick from end if len is enough.
+		// But we need exactly 3 worst.
+		// If len < 3, they are both top and worst? Overlap is fine.
+
+		// Let's take the last 3 elements, reverse them so it's "Worst 1, Worst 2, Worst 3" (lowest first)
+		worst := make([]TitleStat, 0, 3)
+		n := len(works)
+		if n > 0 {
+			// End is lowest.
+			// works[n-1] is lowest. works[n-2] is second lowest.
+			// We want: [Lowest, 2nd Lowest, 3rd Lowest]
+			for i := n - 1; i >= 0 && len(worst) < 3; i-- {
+				worst = append(worst, works[i])
+			}
+		}
+		s.GenreWorstWorks[g] = worst
+	}
+}
+
+func (s *Stats) computeSampleMovies() {
+	for g, movies := range s.GenreSampleMovies {
+		// Sort by Popularity Desc
+		sort.Slice(movies, func(i, j int) bool {
+			return movies[i].Popularity > movies[j].Popularity
+		})
+		// Truncate to 5
+		if len(movies) > 5 {
+			s.GenreSampleMovies[g] = movies[:5]
+		}
 	}
 }
